@@ -1,0 +1,81 @@
+<style>
+  body { padding: 14px 16px; }
+  .row { display: flex; align-items: center; gap: 18px; }
+  .ring { position: relative; width: 96px; height: 96px; flex: none; }
+  .ring svg { width: 96px; height: 96px; transform: rotate(-90deg); }
+  .ring .track { stroke: rgba(255,255,255,0.08); }
+  .ring .fill { stroke: var(--accent); transition: stroke-dashoffset .6s ease; }
+  .ring.over .fill { stroke: #ff6b5e; }
+  .ring .mid { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring b { font-size: 22px; line-height: 1; color: #fff; }
+  .ring small { display: block; font-size: 11px; opacity: .6; margin-top: 3px; }
+  .side { flex: 1; min-width: 0; }
+  .streak { font-size: 13px; margin-bottom: 10px; }
+  .streak b { color: var(--accent); font-size: 18px; }
+  .live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+          margin-left: 8px; vertical-align: middle; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .week { display: flex; align-items: flex-end; gap: 6px; height: 46px; }
+  .bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .bar i { width: 100%; max-width: 18px; border-radius: 4px 4px 2px 2px; background: rgba(255,255,255,0.14); min-height: 3px; }
+  .bar.hit i { background: var(--accent); }
+  .bar.today i { outline: 1px solid rgba(255,255,255,0.35); outline-offset: 1px; }
+  .bar span { font-size: 10px; opacity: .5; }
+</style>
+
+<div class="row">
+  <div class="ring" id="ring">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle class="track" cx="50" cy="50" r="42" fill="none" stroke-width="9"></circle>
+      <circle class="fill" id="fill" cx="50" cy="50" r="42" fill="none" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="263.9"></circle>
+    </svg>
+    <div class="mid"><div><b id="today">0</b><small id="of">of 60 min</small></div></div>
+  </div>
+  <div class="side">
+    <div class="streak"><b id="streak">0</b> <span id="streakLabel">day streak</span><span id="live"></span></div>
+    <div class="week" id="week"></div>
+  </div>
+</div>
+
+<script>
+  var LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+  var CIRCUMFERENCE = 263.9;
+
+  function minutes(seconds) { return Math.floor(seconds / 60); }
+
+  function render(s) {
+    if (!s) return;
+    var pct = s.goal > 0 ? Math.min(1, s.today / s.goal) : 0;
+    document.getElementById("fill").setAttribute("stroke-dashoffset", String(CIRCUMFERENCE * (1 - pct)));
+    document.getElementById("ring").className = "ring" + (s.atMost && s.today > s.goal ? " over" : "");
+    document.getElementById("today").textContent = minutes(s.today);
+    document.getElementById("of").textContent = (s.atMost ? "limit " : "of ") + minutes(s.goal) + " min";
+    document.getElementById("streak").textContent = s.streak;
+    document.getElementById("live").className = s.playing ? "live" : "";
+
+    var most = s.week.reduce(function (m, d) { return Math.max(m, d.seconds); }, s.goal) || 1;
+    var week = document.getElementById("week");
+    week.textContent = "";
+    s.week.forEach(function (d, i) {
+      var bar = document.createElement("div");
+      var hit = s.atMost ? d.seconds > 0 && d.seconds <= s.goal : d.seconds >= s.goal;
+      bar.className = "bar" + (hit ? " hit" : "") + (i === s.week.length - 1 ? " today" : "");
+      var fill = document.createElement("i");
+      fill.style.height = Math.round(100 * d.seconds / most) + "%";
+      fill.title = minutes(d.seconds) + " min";
+      var label = document.createElement("span");
+      var parts = d.day.split("-");
+      label.textContent = LETTERS[new Date(+parts[0], +parts[1] - 1, +parts[2]).getDay()];
+      bar.appendChild(fill);
+      bar.appendChild(label);
+      week.appendChild(bar);
+    });
+  }
+
+  async function poll() {
+    try { render(await mc2.storage.get("summary")); } catch (e) { /* shown on the next poll */ }
+  }
+  poll();
+  setInterval(poll, 5000);
+</script>

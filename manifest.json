@@ -1,0 +1,16 @@
+{
+  "id": "playtime-goals",
+  "name": "Playtime Goals",
+  "version": "1.0.0",
+  "author": "pikzelperfekt",
+  "authorUrl": "https://github.com/pikzelperfekt",
+  "description": "A daily playtime goal or limit, streaks, and a Play screen card showing how today is going.",
+  "repo": "pikzelperfekt/mc2-plugin-playtime-goals",
+  "main": "main.js",
+  "permissions": ["storage", "ui"],
+  "settings": [
+    { "key": "mode", "type": "choice", "label": "Goal", "options": ["Play at least", "Play at most"], "default": "Play at least" },
+    { "key": "goalMinutes", "type": "number", "label": "Minutes a day", "default": 60, "min": 5, "max": 720 },
+    { "key": "announce", "type": "toggle", "label": "Tell me when I reach it", "default": true }
+  ]
+}
